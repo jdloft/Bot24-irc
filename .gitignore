@@ -56,3 +56,6 @@ docs/_build/
 
 # PyBuilder
 target/
+
+# Don't include DB
+bot24irc.db
