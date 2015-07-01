@@ -5,7 +5,8 @@ import socket
 import sqlite3 as sql
 import yaml
 
-import phablookup
+from phablookup import lookup
+import keywords
 
 # main variables
 default_channels = ["##bot24", "##jd-jl", "##jdl"]
@@ -53,7 +54,11 @@ def parse(s, msg):
     if msg[3][0] == "#":
         msg.append(False) # privmsg?
         if( msg[4][:len( mynick )] == mynick ):
-            msg.append( msg[4].split(" ")[1] ) # mention text
+            try:
+                mention = msg[4].split(" ")[1] # mention text
+            except IndexError:
+                mention = " "
+            msg.append( mention )
         else:
             msg.append( False )
     else:
@@ -76,9 +81,13 @@ def checkActions( msg ):
     if msg[6] == "stop":
         if checkTrusted( msg ):
             stop()
+        else:
+            sendmsg( msg[3], "Sorry, you can't tell me what to do." )
     elif msg[6] == "restart":
         if checkTrusted( msg ):
             restart()
+        else:
+            sendmsg( msg[3], "No. I just haven't met you yet." )
 
 def checkTrusted( msg ):
     trustedNicks=getInfo( 'Nick', 'TrustedUsers')
@@ -88,10 +97,8 @@ def checkTrusted( msg ):
             if ( msg[2] == trustedHosts[ trustedNicks.index(n) ]  ):
                 return True
             else:
-                sendmsg( msg[3], "You are not a trusted user. Sorry." )
                 return False
         else:
-            sendmsg( msg[3], "You are not a trusted user. Sorry." )
             return False
 
 def stop():
@@ -141,17 +148,28 @@ while True:
 
     #print( ircmsg )
 
-    if ircmsg.find(' PRIVMSG ')!=-1:
+    if ircmsg.find(' PRIVMSG ') != -1:
         parse(ircmsg, msg)
         print( msg )
 
-        if not msg[6] == False:
+        if not msg[6] is False:
             checkActions( msg )
 
         # phabricator lookup
-        phabtext = phablookup.check( msg, config['phabricator']['site'], config['phabricator']['apitoken'] )
+        phabtext = lookup( msg, config['phabricator']['site'], config['phabricator']['apitoken'] )
         for s in phabtext:
-            sendmsg( msg[3], s)
+            sendmsg( msg[3], s )
+
+        # keywords lookup
+        if checkTrusted( msg ):
+            response = keywords.check( msg, True )
+        else:
+            response = keywords.check( msg, False )
+        responselns = response.splitlines()
+        for ln in responselns:
+            if ln == '':
+                ln = " "
+            sendmsg( msg[3], ln )
 
     if ircmsg.find("PING :") != -1:
         pong()

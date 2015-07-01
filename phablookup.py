@@ -2,7 +2,7 @@ import json
 import subprocess
 import re
 
-def check( msg, site, apitoken ):
+def lookup( msg, site, apitoken ):
     wordlist = msg[4].split(" ")
     matches = []
     text = []
@@ -29,7 +29,7 @@ def check( msg, site, apitoken ):
                       }"""
             method = "maniphest.info"
             print("Looking up "+ n)
-            title = lookup( request, method, n[1:], 'title', site, apitoken )
+            title = getTitle( request, method, n[1:], 'title', site, apitoken )
             if ( title == "Doesn't exist" or title == "Error with lookup" ): showurl = False
             if showurl:
                 text.append( n +": "+ title +" - "+ site +"/"+ n[1:] )
@@ -38,7 +38,7 @@ def check( msg, site, apitoken ):
         #elif matches[n][:1] == "D": # Differential support
     return text
 
-def lookup( request, method, refnum, refprop, site, token ):
+def getTitle( request, method, refnum, refprop, site, token ):
     arc_cmd = [ "arc", "call-conduit", "--conduit-uri="+ site, "--conduit-token="+ token, method ]
     phabreq = subprocess.Popen( arc_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE )
     phabjson = json.loads( phabreq.communicate( request )[0] )
