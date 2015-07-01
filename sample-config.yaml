@@ -1,5 +1,5 @@
 --- bot24-irc config
-# Fill in nick, password, and server with your details
+# Fill in nick, password, server, and site details with your details
 credentials:
         nick: 
         password: 
