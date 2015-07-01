@@ -1,0 +1,6 @@
+[submodule "arcanist"]
+	path = arcanist
+	url = https://secure.phabricator.com/diffusion/ARC/arcanist.git
+[submodule "libphutil"]
+	path = libphutil
+	url = https://secure.phabricator.com/diffusion/PHU/libphutil.git
