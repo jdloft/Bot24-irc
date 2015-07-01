@@ -5,6 +5,8 @@ import socket
 import sqlite3 as sql
 import yaml
 
+import phablookup
+
 # main variables
 default_channels = ["##bot24", "##jd-jl", "##jdl"]
 
@@ -29,7 +31,7 @@ server = config['server']
 # IRC actions
 # respond to pings
 def pong():
-    print( "Pong..." )
+    print( "PONG..." )
     ircsock.send( "PONG :Pong\n" )
 
 # send stuff
@@ -137,14 +139,19 @@ while True:
     ircmsg = ircsock.recv(2048) # receive
     ircmsg = ircmsg.strip('\n\r') # clean up
 
-    print( ircmsg )
+    #print( ircmsg )
 
     if ircmsg.find(' PRIVMSG ')!=-1:
         parse(ircmsg, msg)
-        print(msg)
+        print( msg )
 
         if not msg[6] == False:
             checkActions( msg )
+
+        # phabricator lookup
+        phabtext = phablookup.check( msg, config['phabricator']['site'], config['phabricator']['apitoken'] )
+        for s in phabtext:
+            sendmsg( msg[3], s)
 
     if ircmsg.find("PING :") != -1:
         pong()

@@ -4,3 +4,5 @@ credentials:
         nick: 
         password: 
 server: irc.freenode.net
+phabricator:
+        apitoken: 
