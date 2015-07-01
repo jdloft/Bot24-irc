@@ -9,15 +9,15 @@ def lookup( msg, site, apitoken ):
     text = []
     regex = re.compile( r"[T][1-9][0-9]{0,6}(?=\W|\Z)" ) # matching standalone T# to T#####
     regex2 = re.compile( r"https?://phabricator.wikimedia.org/[T][1-9][0-9]{0,6}(?=\W|\Z)" )
+    if ( msg[0] == "wikibugs" or msg[0] == "grrrit-wm" ):
+        return ""
     for w in wordlist:
         if regex2.match( w ):
-            print("Matched regex2")
             showurl = False
             w = w.rsplit( "/", 1 )[1]
             w = re.sub( r'(?![T][1-9][0-9]{0,6})\W+', '', w )
             matches.append( w )
         else:
-            print("Regex1 check...")
             showurl = True
             w = re.sub( r'\W+', '', w ) # strip out non-alphanumeric chars (punctuation and such)
             if regex.match( w ):
