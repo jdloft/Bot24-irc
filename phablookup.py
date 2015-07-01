@@ -1,6 +1,7 @@
 import json
 import subprocess
 import re
+import os
 
 def lookup( msg, site, apitoken ):
     wordlist = msg[4].split(" ")
@@ -32,14 +33,15 @@ def lookup( msg, site, apitoken ):
             title = getTitle( request, method, n[1:], 'title', site, apitoken )
             if ( title == "Doesn't exist" or title == "Error with lookup" ): showurl = False
             if showurl:
-                text.append( n +": "+ title +" - "+ site +"/"+ n[1:] )
+                text.append( n +": "+ title +" - "+ site +"/"+ n )
             else:
                 text.append( n +": "+ title )
         #elif matches[n][:1] == "D": # Differential support
     return text
 
 def getTitle( request, method, refnum, refprop, site, token ):
-    arc_cmd = [ "arc", "call-conduit", "--conduit-uri="+ site, "--conduit-token="+ token, method ]
+    arc = os.path.abspath( "arcanist/bin/arc" )
+    arc_cmd = [ arc, "call-conduit", "--conduit-uri="+ site, "--conduit-token="+ token, method ]
     phabreq = subprocess.Popen( arc_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE )
     phabjson = json.loads( phabreq.communicate( request )[0] )
     if not phabjson['error'] == None:
