@@ -7,22 +7,14 @@ def lookup( msg, site, apitoken ):
     wordlist = msg[4].split(" ")
     matches = []
     text = []
-    regex = re.compile( r"[T][1-9][0-9]{0,6}(?=\W|\Z)" ) # matching standalone T# to T#####
-    regex2 = re.compile( r"https?://phabricator.wikimedia.org/[T][1-9][0-9]{0,6}(?=\W|\Z)" )
     if ( msg[0] == "wikibugs" or msg[0] == "grrrit-wm" ):
         return ""
-    for w in wordlist:
-        if regex2.match( w ):
-            showurl = False
-            w = w.rsplit( "/", 1 )[1]
-            w = re.sub( r'(?![T][1-9][0-9]{0,6})\W+', '', w )
-            matches.append( w )
-        else:
-            showurl = True
-            w = re.sub( r'\W+', '', w ) # strip out non-alphanumeric chars (punctuation and such)
-            if regex.match( w ):
-                print("Matched regex1")
-                matches.append( w )
+    matches = re.findall( r"https?://phabricator.wikimedia.org/[T][1-9][0-9]{0,6}(?=\W|\Z)", msg[4] )
+    if matches:
+        showurl = False
+    else:
+        showurl = True
+        matches = re.findall( r"[T][1-9][0-9]{0,6}(?=\W|\Z)", msg[4] )
     for n in matches:
         if n[:1] == "T":
             request = """{
@@ -42,6 +34,7 @@ def lookup( msg, site, apitoken ):
 def getTitle( request, method, refnum, refprop, site, token ):
     arc = os.path.abspath( "arcanist/bin/arc" )
     arc_cmd = [ arc, "call-conduit", "--conduit-uri="+ site, "--conduit-token="+ token, method ]
+    print( "Looking up "+ refnum )
     phabreq = subprocess.Popen( arc_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE )
     phabjson = json.loads( phabreq.communicate( request )[0] )
     if not phabjson['error'] == None:
