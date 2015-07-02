@@ -135,7 +135,7 @@ ircsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # start stream
 print("Connecting to server...")
 ircsock.connect((server, 6667)) # connect to server
 print("Authenticating as "+ mynick +"...")
-ircsock.send("USER "+ mynick +" "+ mynick +" "+ mynick +" :I annoy people.\n") # user auth
+ircsock.send("USER "+ mynick +" "+ mynick +" "+ mynick +" :In alpha state. Talk to Negative24 with problems.\n") # user auth
 print("Setting nick to "+ mynick +"...")
 ircsock.send("NICK "+ mynick +"\n") # nick auth
 print("Authenticating with NickServ...")
@@ -157,9 +157,10 @@ while True:
             checkActions( msg )
 
         # phabricator lookup
-        phabtext = lookup( msg, config['phabricator']['site'], config['phabricator']['apitoken'] )
-        for s in phabtext:
-            sendmsg( msg[3], s )
+        if False:
+            phabtext = lookup( msg, config['phabricator']['site'], config['phabricator']['apitoken'] )
+            for s in phabtext:
+                sendmsg( msg[3], s )
 
         # keywords lookup
         if checkTrusted( msg ):
