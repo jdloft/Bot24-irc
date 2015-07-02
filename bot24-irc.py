@@ -9,7 +9,7 @@ from phablookup import lookup
 import keywords
 
 # main variables
-default_channels = ["##bot24", "#mediawiki", "#wikimedia-dev", "#wikimedia-labs", "#wikimedia-operations", "#wikimedia-tech"]
+default_channels = ["##bot24", "#mediawiki", "#wikimedia-dev", "#wikimedia-labs", "#wikimedia-tech"]
 #default_channels = ["##bot24"] # to not bother other people
 
 msg = []
