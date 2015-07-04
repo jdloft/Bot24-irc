@@ -13,6 +13,7 @@ default_channels = ["##bot24", "#mediawiki", "#wikimedia-dev", "#wikimedia-labs"
 #default_channels = ["##bot24"] # to not bother other people
 
 msg = []
+gophablookup = False
 
 # Setup DB
 try:
@@ -89,6 +90,18 @@ def checkActions( msg ):
             restart()
         else:
             sendmsg( msg[3], "No. I just haven't met you yet." )
+    elif msg[6] == "phablookup on"
+        if checkTrusted( msg ):
+            sendmsg( msg[3], "Turning Phabricator lookup on." )
+            gophablookup = True
+        else:
+            sendmsg( msg[3], "Not trusted." )
+    elif msg[6] == "phablookup off"
+        if checkTrusted( msg ):
+            sendmsg( msg[3], "Turning Phabricator lookup off." )
+            gophablookup = False
+        else:
+            sendmsg( msg[3], "Not trusted." )
 
 def checkTrusted( msg ):
     trustedNicks=getInfo( 'Nick', 'TrustedUsers')
@@ -157,7 +170,7 @@ while True:
             checkActions( msg )
 
         # phabricator lookup
-        if False:
+        if gophablookup:
             phabtext = lookup( msg, config['phabricator']['site'], config['phabricator']['apitoken'] )
             for s in phabtext:
                 sendmsg( msg[3], s )
