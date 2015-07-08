@@ -60,3 +60,5 @@ target/
 # Don't include DB and config
 bot24irc.db
 config.yaml
+
+*.swp
