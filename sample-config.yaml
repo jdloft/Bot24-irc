@@ -1,8 +1,10 @@
 --- bot24-irc config
 # Fill in nick, password, server, and site details with your details
 credentials:
-        nick: 
-        password: 
+    nick: 
+    password: 
 server: irc.freenode.net
+channels:
+    - '#'
 phabricator:
-        apitoken: 
+    apitoken: 

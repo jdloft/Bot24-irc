@@ -8,11 +8,6 @@ import yaml
 from phablookup import lookup
 import keywords
 
-# main variables
-default_channels = ["##bot24", "#mediawiki", "#wikimedia-dev",
-                    "#wikimedia-labs", "#wikimedia-tech"]
-#default_channels = ["##bot24"]  # to not bother other people
-
 msg = []
 gophablookup = False
 
@@ -39,13 +34,17 @@ def pong():
     print("PONG...")
     ircsock.send("PONG :Pong\n")
 
+
 # send stuff
 def sendmsg(target, s):
     ircsock.send("PRIVMSG " + target + " :" + s + "\n")
 
-def joinchan(chan):
-    print("Joining " + chan)
-    ircsock.send("JOIN " + chan + "\n")
+
+def joinchan():
+    for i in config['channels']:
+        print("Joining " + i)
+        ircsock.send("JOIN " + i + "\n")
+
 
 # parse PRIVMSGs
 def parse(s, msg):
@@ -70,6 +69,7 @@ def parse(s, msg):
         msg.append(msg[4].split(" ")[1])
     return msg
 
+
 # DB commands
 def getInfo(column, table):
     dbcur.execute("SELECT " + column + " FROM " + table)
@@ -77,8 +77,10 @@ def getInfo(column, table):
     outputlist = [i for sub in output for i in sub]
     return outputlist
 
+
 def addInfo(table, column, values):
     dbcur.execute("INSERT INTO " + table + "(" + column + ") VALUES ('" + ', '.join(values) + "')")
+
 
 # Actions
 def checkActions(msg):
@@ -105,6 +107,7 @@ def checkActions(msg):
         else:
             sendmsg(msg[3], "Not trusted.")
 
+
 def checkTrusted(msg):
     trustedNicks = getInfo('Nick', 'TrustedUsers')
     trustedHosts = getInfo('Host', 'TrustedUsers')
@@ -116,6 +119,7 @@ def checkTrusted(msg):
                 return False
         else:
             return False
+
 
 def stop():
     sendmsg(msg[3], "Stopping...")
@@ -130,6 +134,7 @@ def stop():
 
     sys.exit(0)
 
+
 def restart():
     sendmsg(msg[3], "Restarting...")
     print("Restarting...")
@@ -143,6 +148,7 @@ def restart():
 
     executable = sys.executable
     os.execl(executable, executable, * sys.argv)
+
 
 class colors:
     header = '\033[1m'
@@ -163,8 +169,7 @@ print("Setting nick to " + mynick + "...")
 ircsock.send("NICK " + mynick + "\n")  # nick auth
 print("Authenticating with NickServ...")
 sendmsg('NickServ', "IDENTIFY " + password)
-for chan in default_channels:
-    joinchan(chan)  # join channels
+joinchan()  # join channels
 
 while True:
     ircmsg = ircsock.recv(2048)  # receive
