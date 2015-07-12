@@ -5,11 +5,10 @@ import socket
 import sqlite3 as sql
 import yaml
 
-from phablookup import lookup
 import keywords
 
 msg = []
-gophablookup = False
+roles = []
 
 # Setup DB
 try:
@@ -94,18 +93,6 @@ def checkActions(msg):
             restart()
         else:
             sendmsg(msg[3], "No. I just haven't met you yet.")
-    elif msg[6] == "phablookup on":
-        if checkTrusted(msg):
-            sendmsg(msg[3], "Turning Phabricator lookup on.")
-            gophablookup = True
-        else:
-            sendmsg(msg[3], "Not trusted.")
-    elif msg[6] == "phablookup off":
-        if checkTrusted(msg):
-            sendmsg(msg[3], "Turning Phabricator lookup off.")
-            gophablookup = False
-        else:
-            sendmsg(msg[3], "Not trusted.")
 
 
 def checkTrusted(msg):
@@ -158,7 +145,73 @@ class colors:
     fail = '\033[1m\033[91m'
     reset = '\033[0m'
 
-# Connect to IRC
+
+class role:
+    run = False
+    moduleName = ""
+    checkFunc = ""
+    args = []
+
+    def init(self):
+        if self.moduleName:
+            try:
+                print("Importing: " + self.moduleName)
+                self.module = __import__(self.moduleName)
+            except SyntaxError:
+                print("Syntax error with " + self.moduleName + ", skipping...")
+                self.run = False
+                return 1
+            except ImportError:
+                print("Could not find " + self.moduleName + ", skipping...")
+                self.run = False
+                return 1
+            else:
+                self.funcToCall = getattr(self.module, self.checkFunc)
+                return 0
+        else:
+            return 0
+
+    def stop(self):
+        self.run = False
+
+    def start(self):
+        self.run = True
+
+    def check(self):
+        if self.run:
+            if self.moduleName:
+                results = self.funcToCall(*self.args)
+            else:
+                results = self.checkFunc(*self.args)
+            return results
+        else:
+            return ""
+
+    def reload(self):
+        if self.module:
+            try:
+                reload(self.module)
+            except SyntaxError:
+                print("Syntax error with " + self.module + ", skipping...")
+                self.run = False
+                return 1
+            except ImportError:
+                print("Could not find " + self.module + ", skipping...")
+                self.run = False
+                return 1
+            else:
+                return 0
+        else:
+            return 0
+
+phabLookup = role()
+roles.append(phabLookup)
+phabLookup.run = True
+phabLookup.moduleName = 'phablookup'
+phabLookup.checkFunc = 'lookup'
+phabLookup.args = [msg, config['phabricator']['site'], config['phabricator']['apitoken']]
+
+# Do stuff
 print("Connecting socket...")
 ircsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # start stream
 print("Connecting to server...")
@@ -170,6 +223,8 @@ ircsock.send("NICK " + mynick + "\n")  # nick auth
 print("Authenticating with NickServ...")
 sendmsg('NickServ', "IDENTIFY " + password)
 joinchan()  # join channels
+
+phabLookup.init()
 
 while True:
     ircmsg = ircsock.recv(2048)  # receive
@@ -184,11 +239,10 @@ while True:
         if not msg[6] is False:
             checkActions(msg)
 
-        # phabricator lookup
-        if gophablookup:
-            phabtext = lookup(msg, config['phabricator']['site'], config['phabricator']['apitoken'])
-            for s in phabtext:
-                sendmsg(msg[3], s)
+        # roles
+        for role in roles:
+            for response in getattr(role, 'check')():
+                sendmsg(msg[3], response)
 
         # keywords lookup
         if checkTrusted(msg):
