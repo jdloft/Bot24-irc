@@ -22,7 +22,7 @@ def lookup(msg, site, apitoken):
                       }"""
             method = "maniphest.info"
             print("Looking up " + n)
-            title = getTitle(request, method, n[1:], 'title', site, apitoken)
+            title = get_title(request, method, n[1:], 'title', site, apitoken)
             if (title == "Doesn't exist" or title == "Error with lookup"):
                 showurl = False
             if showurl:
@@ -33,7 +33,7 @@ def lookup(msg, site, apitoken):
     return text
 
 
-def getTitle(request, method, refnum, refprop, site, token):
+def get_title(request, method, refnum, refprop, site, token):
     arc = os.path.abspath("arcanist/bin/arc")
     arc_cmd = [arc, "call-conduit", "--conduit-uri=" + site, "--conduit-token=" + token, method]
     print("Looking up " + refnum)

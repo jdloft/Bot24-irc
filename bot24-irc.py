@@ -35,11 +35,11 @@ def pong():
 
 
 # send stuff
-def sendMsg(target, s):
+def send_msg(target, s):
     ircsock.send("PRIVMSG " + target + " :" + s + "\n")
 
 
-def joinChan():
+def join_chan():
     for i in config['channels']:
         print("Joining " + i)
         ircsock.send("JOIN " + i + "\n")
@@ -70,64 +70,64 @@ def parse(s, msg):
 
 
 # DB commands
-def getInfo(column, table):
+def get_info(column, table):
     dbcur.execute("SELECT " + column + " FROM " + table)
     output = dbcur.fetchall()
     outputlist = [i for sub in output for i in sub]
     return outputlist
 
 
-def addInfo(table, column, values):
+def add_info(table, column, values):
     dbcur.execute("INSERT INTO " + table + "(" + column + ") VALUES ('" + ', '.join(values) + "')")
 
 
 # Actions
-def checkActions(msg):
+def check_actions(msg):
     # Stop
     if msg[6].startswith("stop"):
-        if checkTrusted(msg):
+        if check_trusted(msg):
             stop()
         else:
-            sendMsg(msg[3], "Sorry, you can't tell me what to do.")
+            send_msg(msg[3], "Sorry, you can't tell me what to do.")
     # Restart
     elif msg[6].startswith("restart"):
-        if checkTrusted(msg):
+        if check_trusted(msg):
             restart()
         else:
-            sendMsg(msg[3], "I don't think so.")
+            send_msg(msg[3], "I don't think so.")
     # Role control
     elif msg[6].startswith("role "):
         command = " ".join(msg[6].split(" ")[1:])
-        if checkTrusted(msg):
+        if check_trusted(msg):
             for n in roles:
                 if command.startswith(n.lower()):
                     if command.endswith("start"):
-                        sendMsg(msg[3], "Starting " + n + "...")
+                        send_msg(msg[3], "Starting " + n + "...")
                         roles[n].start()
-                        return 0
+                        return False
                     elif command.endswith("stop"):
-                        sendMsg(msg[3], "Stopping " + n + "...")
+                        send_msg(msg[3], "Stopping " + n + "...")
                         roles[n].stop()
-                        return 0
+                        return False
                     elif command.endswith("reload"):
-                        sendMsg(msg[3], "Reloading " + n + "...")
-                        roles[n].reloadRole()
-                        return 0
+                        send_msg(msg[3], "Reloading " + n + "...")
+                        roles[n].reload_role()
+                        return False
                     else:
-                        sendMsg(msg[3], "I don't know what you want me to do with this role.")
-                        return 0
-            sendMsg(msg[3], "Role not found.")
-            return 0
+                        send_msg(msg[3], "I don't know what you want me to do with this role.")
+                        return False
+            send_msg(msg[3], "Role not found.")
+            return False
         else:
-            sendMsg(msg[3], "Ha ha ha. Good one.")
+            send_msg(msg[3], "Ha ha ha. Good one.")
 
 
-def checkTrusted(msg):
-    trustedNicks = getInfo('Nick', 'TrustedUsers')
-    trustedHosts = getInfo('Host', 'TrustedUsers')
-    for n in trustedNicks:
+def check_trusted(msg):
+    trusted_nicks = get_info('Nick', 'TrustedUsers')
+    trusted_hosts = get_info('Host', 'TrustedUsers')
+    for n in trusted_nicks:
         if msg[0] == n:
-            if (msg[2] == trustedHosts[trustedNicks.index(n)]):
+            if (msg[2] == trusted_hosts[trusted_nicks.index(n)]):
                 return True
             else:
                 return False
@@ -136,7 +136,7 @@ def checkTrusted(msg):
 
 
 def stop():
-    sendMsg(msg[3], "Stopping...")
+    send_msg(msg[3], "Stopping...")
     print("Stopping...")
 
     ircsock.send("QUIT :Goodbye!\n")  # seems to not work? Bug #1
@@ -150,7 +150,7 @@ def stop():
 
 
 def restart():
-    sendMsg(msg[3], "Restarting...")
+    send_msg(msg[3], "Restarting...")
     print("Restarting...")
 
     ircsock.send("QUIT :Restarting\n")
@@ -164,7 +164,7 @@ def restart():
     os.execl(executable, executable, * sys.argv)
 
 
-class colors:
+class Colors:
     header = '\033[1m'
     ok = '\033[92m'
     info = '\033[94m'
@@ -173,30 +173,30 @@ class colors:
     reset = '\033[0m'
 
 
-class role:
+class Role:
     run = False
-    moduleName = ""
-    checkFunc = ""
+    module_name = ""
+    check_func = ""
     args = []
 
     def init(self):
-        if self.moduleName:
+        if self.module_name:
             try:
-                print("Importing: " + self.moduleName)
-                self.module = __import__(self.moduleName)
+                print("Importing: " + self.module_name)
+                self.module = __import__(self.module_name)
             except SyntaxError:
-                print("Syntax error with " + self.moduleName + ", skipping...")
+                print("Syntax error with " + self.module_name + ", skipping...")
                 self.run = False
-                return 1
+                return True
             except ImportError:
-                print("Could not find " + self.moduleName + ", skipping...")
+                print("Could not find " + self.module_name + ", skipping...")
                 self.run = False
-                return 1
+                return True
             else:
-                self.funcToCall = getattr(self.module, self.checkFunc)
-                return 0
+                self.func_to_call = getattr(self.module, self.check_func)
+                return False
         else:
-            return 0
+            return False
 
     def start(self):
         self.run = True
@@ -206,43 +206,40 @@ class role:
 
     def check(self):
         if self.run:
-            if self.moduleName:
-                results = self.funcToCall(*self.args)
+            if self.module_name:
+                return self.func_to_call(*self.args)
             else:
-                results = self.checkFunc(*self.args)
-            return results
-        else:
-            return ""
+                return self.check_func(*self.args)
+        return ""
 
-    def reloadRole(self):
+    def reload_role(self):
         if self.module:
             try:
                 reload(self.module)
             except SyntaxError:
-                print("Syntax error with " + self.moduleName + ", skipping...")
+                print("Syntax error with " + self.module_name + ", skipping...")
                 self.run = False
-                return 1
+                return True
             except ImportError:
-                print("Could not find " + self.moduleName + ", skipping...")
+                print("Could not find " + self.module_name + ", skipping...")
                 self.run = False
-                return 1
+                return True
             else:
-                return 0
-        else:
-            return 0
+                return False
+        return False
 
 
-def addRole(roleName, run, checkFunc, args, module):
-    roles[roleName] = role()
-    roles[roleName].run = run
+def add_role(role_name, run, check_func, args, module):
+    roles[role_name] = Role()
+    roles[role_name].run = run
     if module:
-        roles[roleName].moduleName = module
-    roles[roleName].checkFunc = checkFunc
-    roles[roleName].args = args
+        roles[role_name].module_name = module
+    roles[role_name].check_func = check_func
+    roles[role_name].args = args
 
 
-addRole('phabLookup', True, 'lookup', [msg, config['phabricator']['site'], config['phabricator']['apitoken']], 'phablookup')
-addRole('keywords', True, 'check', [msg, trusted], 'keywords')
+add_role('phabLookup', True, 'lookup', [msg, config['phabricator']['site'], config['phabricator']['apitoken']], 'phablookup')
+add_role('keywords', True, 'check', [msg, trusted], 'keywords')
 
 # Do stuff
 print("Connecting socket...")
@@ -254,8 +251,8 @@ ircsock.send("USER " + mynick + " " + mynick + " " + mynick + " :In alpha state.
 print("Setting nick to " + mynick + "...")
 ircsock.send("NICK " + mynick + "\n")  # nick auth
 print("Authenticating with NickServ...")
-sendMsg('NickServ', "IDENTIFY " + password)
-joinChan()  # join channels
+send_msg('NickServ', "IDENTIFY " + password)
+join_chan()  # join channels
 
 for n in roles:
     getattr(roles[n], 'init')()  # run init on roles
@@ -270,26 +267,26 @@ while True:
         parse(ircmsg, msg)
         print(msg)
 
-        if checkTrusted(msg):
+        if check_trusted(msg):
             trusted = True
         else:
             trusted = False
 
         if not msg[6] is False:
-            checkActions(msg)
+            check_actions(msg)
 
         # roles
         for n in roles:
             response = getattr(roles[n], 'check')()
             if type(response) is list:
-                for responseLn in response:
-                    sendMsg(msg[3], responseLn)
+                for response_ln in response:
+                    send_msg(msg[3], response_ln)
             else:
-                responseLns = response.splitlines()
-                for ln in responseLns:
+                response_lns = response.splitlines()
+                for ln in response_lns:
                     if ln == '':
                         ln = " "
-                    sendMsg(msg[3], ln)
+                    send_msg(msg[3], ln)
 
     if ircmsg.find("PING :") != -1:
         pong()
