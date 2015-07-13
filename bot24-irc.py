@@ -5,10 +5,9 @@ import socket
 import sqlite3 as sql
 import yaml
 
-import keywords
-
 msg = []
-roles = []
+trusted = False
+roles = {}
 
 # Setup DB
 try:
@@ -17,6 +16,7 @@ try:
 except db.Error, e:
     print "Error %s:" % e.args[0]
     sys.exit(1)
+
 
 # Setup config file
 with open(os.path.abspath("config.yaml")) as conf:
@@ -27,7 +27,7 @@ password = config['credentials']['password']
 server = config['server']
 
 
-# IRC actions
+# IRC base actions
 # respond to pings
 def pong():
     print("PONG...")
@@ -35,11 +35,11 @@ def pong():
 
 
 # send stuff
-def sendmsg(target, s):
+def sendMsg(target, s):
     ircsock.send("PRIVMSG " + target + " :" + s + "\n")
 
 
-def joinchan():
+def joinChan():
     for i in config['channels']:
         print("Joining " + i)
         ircsock.send("JOIN " + i + "\n")
@@ -87,12 +87,12 @@ def checkActions(msg):
         if checkTrusted(msg):
             stop()
         else:
-            sendmsg(msg[3], "Sorry, you can't tell me what to do.")
+            sendMsg(msg[3], "Sorry, you can't tell me what to do.")
     elif msg[6] == "restart":
         if checkTrusted(msg):
             restart()
         else:
-            sendmsg(msg[3], "No. I just haven't met you yet.")
+            sendMsg(msg[3], "No. I just haven't met you yet.")
 
 
 def checkTrusted(msg):
@@ -109,7 +109,7 @@ def checkTrusted(msg):
 
 
 def stop():
-    sendmsg(msg[3], "Stopping...")
+    sendMsg(msg[3], "Stopping...")
     print("Stopping...")
 
     ircsock.send("QUIT :Goodbye!\n")  # seems to not work? Bug #1
@@ -123,7 +123,7 @@ def stop():
 
 
 def restart():
-    sendmsg(msg[3], "Restarting...")
+    sendMsg(msg[3], "Restarting...")
     print("Restarting...")
 
     ircsock.send("QUIT :Restarting\n")
@@ -204,12 +204,18 @@ class role:
         else:
             return 0
 
-phabLookup = role()
-roles.append(phabLookup)
-phabLookup.run = True
-phabLookup.moduleName = 'phablookup'
-phabLookup.checkFunc = 'lookup'
-phabLookup.args = [msg, config['phabricator']['site'], config['phabricator']['apitoken']]
+
+def addRole(roleName, run, checkFunc, args, module):
+    roles[roleName] = role()
+    roles[roleName].run = run
+    if module:
+        roles[roleName].moduleName = module
+    roles[roleName].checkFunc = checkFunc
+    roles[roleName].args = args
+
+
+addRole('phabLookup', True, 'lookup', [msg, config['phabricator']['site'], config['phabricator']['apitoken']], 'phablookup')
+addRole('keywords', True, 'check', [msg, trusted], 'keywords')
 
 # Do stuff
 print("Connecting socket...")
@@ -221,13 +227,14 @@ ircsock.send("USER " + mynick + " " + mynick + " " + mynick + " :In alpha state.
 print("Setting nick to " + mynick + "...")
 ircsock.send("NICK " + mynick + "\n")  # nick auth
 print("Authenticating with NickServ...")
-sendmsg('NickServ', "IDENTIFY " + password)
-joinchan()  # join channels
+sendMsg('NickServ', "IDENTIFY " + password)
+joinChan()  # join channels
 
-phabLookup.init()
+for n in roles:
+    getattr(roles[n], 'init')()  # run init on roles
 
 while True:
-    ircmsg = ircsock.recv(2048)  # receive
+    ircmsg = ircsock.recv(4096)  # receive
     ircmsg = ircmsg.strip('\n\r')  # clean up
 
     #print(ircmsg)
@@ -236,24 +243,26 @@ while True:
         parse(ircmsg, msg)
         print(msg)
 
+        if checkTrusted(msg):
+            trusted = True
+        else:
+            trusted = False
+
         if not msg[6] is False:
             checkActions(msg)
 
         # roles
-        for role in roles:
-            for response in getattr(role, 'check')():
-                sendmsg(msg[3], response)
-
-        # keywords lookup
-        if checkTrusted(msg):
-            response = keywords.check(msg, True)
-        else:
-            response = keywords.check(msg, False)
-        responselns = response.splitlines()
-        for ln in responselns:
-            if ln == '':
-                ln = " "
-            sendmsg(msg[3], ln)
+        for n in roles:
+            response = getattr(roles[n], 'check')()
+            if type(response) is list:
+                for responseLn in response:
+                    sendMsg(msg[3], responseLn)
+            else:
+                responseLns = response.splitlines()
+                for ln in responseLns:
+                    if ln == '':
+                        ln = " "
+                    sendMsg(msg[3], ln)
 
     if ircmsg.find("PING :") != -1:
         pong()

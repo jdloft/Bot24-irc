@@ -1,6 +1,6 @@
-def check( msg, trusted ):
+def check(msg, trusted):
     response = ""
-    if not msg[6] == False:
+    if not msg[6] is False:
         if msg[6] == "help":
             if trusted:
                 response = """Bot24 - Help
@@ -15,9 +15,9 @@ def check( msg, trusted ):
                 response = """Bot24 - Help
                     Commands:
                         help - this help text"""
-        elif ( msg[6] == "hi" or msg[6] == "hello" ):
+        elif (msg[6] == "hi" or msg[6] == "hello"):
             response = "Hello!"
     else:
-        if msg[4].find( "bot24" ) != -1:
+        if msg[4].find("bot24") != -1:
             response = "Hello!"
     return response
