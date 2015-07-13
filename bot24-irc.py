@@ -192,11 +192,11 @@ class role:
             try:
                 reload(self.module)
             except SyntaxError:
-                print("Syntax error with " + self.module + ", skipping...")
+                print("Syntax error with " + self.moduleName + ", skipping...")
                 self.run = False
                 return 1
             except ImportError:
-                print("Could not find " + self.module + ", skipping...")
+                print("Could not find " + self.moduleName + ", skipping...")
                 self.run = False
                 return 1
             else:
