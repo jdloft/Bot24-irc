@@ -57,7 +57,7 @@ def parse(s, msg):
         msg.append(False)  # privmsg?
         if(msg[4][:len(mynick)] == mynick):
             try:
-                mention = msg[4].split(" ")[1]  # mention text
+                mention = " ".join(msg[4].split(" ")[1:]).lower()  # mention text
             except IndexError:
                 mention = " "
             msg.append(mention)
@@ -83,16 +83,43 @@ def addInfo(table, column, values):
 
 # Actions
 def checkActions(msg):
-    if msg[6] == "stop":
+    # Stop
+    if msg[6].startswith("stop"):
         if checkTrusted(msg):
             stop()
         else:
             sendMsg(msg[3], "Sorry, you can't tell me what to do.")
-    elif msg[6] == "restart":
+    # Restart
+    elif msg[6].startswith("restart"):
         if checkTrusted(msg):
             restart()
         else:
-            sendMsg(msg[3], "No. I just haven't met you yet.")
+            sendMsg(msg[3], "I don't think so.")
+    # Role control
+    elif msg[6].startswith("role "):
+        command = " ".join(msg[6].split(" ")[1:])
+        if checkTrusted(msg):
+            for n in roles:
+                if command.startswith(n.lower()):
+                    if command.endswith("start"):
+                        sendMsg(msg[3], "Starting " + n + "...")
+                        roles[n].start()
+                        return 0
+                    elif command.endswith("stop"):
+                        sendMsg(msg[3], "Stopping " + n + "...")
+                        roles[n].stop()
+                        return 0
+                    elif command.endswith("reload"):
+                        sendMsg(msg[3], "Reloading " + n + "...")
+                        roles[n].reloadRole()
+                        return 0
+                    else:
+                        sendMsg(msg[3], "I don't know what you want me to do with this role.")
+                        return 0
+            sendMsg(msg[3], "Role not found.")
+            return 0
+        else:
+            sendMsg(msg[3], "Ha ha ha. Good one.")
 
 
 def checkTrusted(msg):
@@ -171,11 +198,11 @@ class role:
         else:
             return 0
 
-    def stop(self):
-        self.run = False
-
     def start(self):
         self.run = True
+
+    def stop(self):
+        self.run = False
 
     def check(self):
         if self.run:
@@ -187,7 +214,7 @@ class role:
         else:
             return ""
 
-    def reload(self):
+    def reloadRole(self):
         if self.module:
             try:
                 reload(self.module)
