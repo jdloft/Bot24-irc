@@ -45,6 +45,12 @@ def whisper(message, yell=False):
         print("\033[94m" + display_time + "\033[0m | \033[90m" + message + "\033[0m")
 
 
+def respond(message, target):
+    current_time = time.localtime()
+    display_time = time.strftime("%H:%M:%S", current_time)
+    print("\033[94m" + display_time + "\033[0m | " + message + "\033[91m -> " + target + "\033[0m")
+
+
 # Setup DB
 try:
     db = sql.connect('bot24irc.db', isolation_level=None)
@@ -71,7 +77,9 @@ def pong():
 
 
 # send stuff
-def send_msg(target, s):
+def send_msg(target, s, norespond=False):
+    if norespond is False:
+        respond(s, target)
     ircsock.send("PRIVMSG " + target + " :" + s + "\n")
 
 
@@ -172,7 +180,7 @@ def check_trusted(msg):
 
 
 def stop():
-    send_msg(msg[3], "Stopping...")
+    send_msg(msg[3], "Stopping...", True)
     whisper("Stopping...", True)
     time.sleep(2)
 
@@ -187,7 +195,7 @@ def stop():
 
 
 def restart():
-    send_msg(msg[3], "Restarting...")
+    send_msg(msg[3], "Restarting...", True)
     whisper("Restarting...", True)
     time.sleep(2)
 
@@ -289,7 +297,7 @@ whisper("Setting nick to " + mynick + "...")
 ircsock.send("NICK " + mynick + "\n")  # nick auth
 
 whisper("Authenticating with NickServ...")
-send_msg('NickServ', "IDENTIFY " + password)
+send_msg('NickServ', "IDENTIFY " + password, True)
 
 join_chan()  # join channels
 
@@ -310,7 +318,7 @@ while True:
         else:
             trusted = False
 
-        if msg[4].find("bot24") != -1:
+        if (msg[4].find("bot24") != -1) or (not msg[6] is False):
             mention = True
         else:
             mention = False
