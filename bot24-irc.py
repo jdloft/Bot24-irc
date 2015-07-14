@@ -81,9 +81,12 @@ def pong():
 
 
 # send stuff
-def send_msg(target, s, norespond=False):
-    if norespond is False:
-        respond(s, target)
+def send_msg(msg, s, norespond=False):
+    if msg[5]:
+        target = msg[0]
+    else:
+        target = msg[3]
+    respond(s, target)
     ircsock.send("PRIVMSG " + target + " :" + s + "\n")
 
 
@@ -113,7 +116,7 @@ def parse(s, msg):
             msg.append(False)
     else:
         msg.append(True)
-        msg.append(msg[4].split(" ")[1])
+        msg.append(msg[4])
     return msg
 
 
@@ -136,13 +139,13 @@ def check_actions(msg):
         if check_trusted(msg):
             stop()
         else:
-            send_msg(msg[3], "Sorry, you can't tell me what to do.")
+            send_msg(msg, "Sorry, you can't tell me what to do.")
     # Restart
     elif msg[6].startswith("restart"):
         if check_trusted(msg):
             restart()
         else:
-            send_msg(msg[3], "I don't think so.")
+            send_msg(msg, "I don't think so.")
     # Role control
     elif msg[6].startswith("role "):
         command = " ".join(msg[6].split(" ")[1:])
@@ -150,30 +153,30 @@ def check_actions(msg):
             for n in roles:
                 if command.startswith(n.lower()):
                     if command.endswith("start"):
-                        send_msg(msg[3], "Starting " + n + "...")
+                        send_msg(msg, "Starting " + n + "...")
                         roles[n].start()
                         return False
                     elif command.endswith("stop"):
-                        send_msg(msg[3], "Stopping " + n + "...")
+                        send_msg(msg, "Stopping " + n + "...")
                         roles[n].stop()
                         return False
                     elif command.endswith("reload"):
-                        send_msg(msg[3], "Reloading " + n + "...")
+                        send_msg(msg, "Reloading " + n + "...")
                         roles[n].reload_role()
                         return False
                     elif command.endswith("status"):
                         if roles[n].run is True:
-                            send_msg(msg[3], n + " is on")
+                            send_msg(msg, n + " is on")
                         else:
-                            send_msg(msg[3], n + " is off")
+                            send_msg(msg, n + " is off")
                         return False
                     else:
-                        send_msg(msg[3], "I don't know what you want me to do with this role.")
+                        send_msg(msg, "I don't know what you want me to do with this role.")
                         return False
-            send_msg(msg[3], "Role not found.")
+            send_msg(msg, "Role not found.")
             return False
         else:
-            send_msg(msg[3], "Ha ha ha. Good one.")
+            send_msg(msg, "Ha ha ha. Good one.")
 
 
 def check_trusted(msg):
@@ -190,7 +193,7 @@ def check_trusted(msg):
 
 
 def stop():
-    send_msg(msg[3], "Stopping...", True)
+    send_msg(msg, "Stopping...", True)
     whisper("Stopping...", True)
     time.sleep(2)
 
@@ -205,7 +208,7 @@ def stop():
 
 
 def restart():
-    send_msg(msg[3], "Restarting...", True)
+    send_msg(msg, "Restarting...", True)
     whisper("Restarting...", True)
     time.sleep(2)
 
@@ -307,7 +310,7 @@ whisper("Setting nick to " + mynick + "...", False, "Server")
 ircsock.send("NICK " + mynick + "\n")  # nick auth
 
 whisper("Authenticating with NickServ...", False, "Server")
-send_msg('NickServ', "IDENTIFY " + password, True)
+ircsock.send("NickServ :IDENTIFY " + password)
 
 join_chan()  # join channels
 
@@ -352,13 +355,13 @@ while True:
             response = getattr(roles[n], 'check')()
             if type(response) is list:
                 for response_ln in response:
-                    send_msg(msg[3], response_ln)
+                    send_msg(msg, response_ln)
             else:
                 response_lns = response.splitlines()
                 for ln in response_lns:
                     if ln == "":
                         ln = " "
-                    send_msg(msg[3], ln)
+                    send_msg(msg, ln)
 
     if ircmsg.find("PING :") != -1:
         pong()
