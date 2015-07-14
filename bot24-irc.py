@@ -149,7 +149,6 @@ def check_actions(msg):
         if check_trusted(msg):
             for n in roles:
                 if command.startswith(n.lower()):
-                    print("Command: <" + command + ">")
                     if command.endswith("start"):
                         send_msg(msg[3], "Starting " + n + "...")
                         roles[n].start()
@@ -161,6 +160,12 @@ def check_actions(msg):
                     elif command.endswith("reload"):
                         send_msg(msg[3], "Reloading " + n + "...")
                         roles[n].reload_role()
+                        return False
+                    elif command.endswith("status"):
+                        if roles[n].run is True:
+                            send_msg(msg[3], n + " is on")
+                        else:
+                            send_msg(msg[3], n + " is off")
                         return False
                     else:
                         send_msg(msg[3], "I don't know what you want me to do with this role.")
