@@ -3,18 +3,54 @@ import os
 import sys
 import socket
 import sqlite3 as sql
+import time
 import yaml
 
 msg = []
 trusted = False
 roles = {}
 
+
+# Display
+def display_clear():
+    sys.stdout.write('\033[2J')
+    sys.stdout.write('\033[H')
+    sys.stdout.flush()
+
+
+def say(msg, trusted=False, mention=False):
+    current_time = time.localtime()
+    display_time = time.strftime("%H:%M:%S", current_time)
+    #column = "{0:10}{1:10}{2:10}{3:5}{4:20}"
+    message = "\033[94m" + display_time + "\033[0m | \033[91m" + msg[3] + "\033[0m | \033[95m" + msg[0]
+    if trusted:
+        message += "\033[93m*"
+    else:
+        message += " "
+
+    if mention:
+        message += "\033[92m          " + msg[4]
+    else:
+        message += "\033[0m          " + msg[4]
+
+    print(message)
+
+
+def whisper(message, yell=False):
+    current_time = time.localtime()
+    display_time = time.strftime("%H:%M:%S", current_time)
+    if yell:
+        print("\033[94m" + display_time + "\033[0m | \033[91m" + message + "\033[0m")
+    else:
+        print("\033[94m" + display_time + "\033[0m | \033[90m" + message + "\033[0m")
+
+
 # Setup DB
 try:
     db = sql.connect('bot24irc.db', isolation_level=None)
     dbcur = db.cursor()
 except db.Error, e:
-    print "Error %s:" % e.args[0]
+    whisper("Error %s:" % e.args[0], True)
     sys.exit(1)
 
 
@@ -30,7 +66,7 @@ server = config['server']
 # IRC base actions
 # respond to pings
 def pong():
-    print("PONG...")
+    whisper("PONG...")
     ircsock.send("PONG :Pong\n")
 
 
@@ -41,7 +77,7 @@ def send_msg(target, s):
 
 def join_chan():
     for i in config['channels']:
-        print("Joining " + i)
+        whisper("Joining " + i)
         ircsock.send("JOIN " + i + "\n")
 
 
@@ -137,7 +173,8 @@ def check_trusted(msg):
 
 def stop():
     send_msg(msg[3], "Stopping...")
-    print("Stopping...")
+    whisper("Stopping...", True)
+    time.sleep(2)
 
     ircsock.send("QUIT :Goodbye!\n")  # seems to not work? Bug #1
     ircsock.shutdown(1)
@@ -151,7 +188,8 @@ def stop():
 
 def restart():
     send_msg(msg[3], "Restarting...")
-    print("Restarting...")
+    whisper("Restarting...", True)
+    time.sleep(2)
 
     ircsock.send("QUIT :Restarting\n")
     ircsock.shutdown(1)
@@ -164,15 +202,7 @@ def restart():
     os.execl(executable, executable, * sys.argv)
 
 
-class Colors:
-    header = '\033[1m'
-    ok = '\033[92m'
-    info = '\033[94m'
-    warning = '\033[1m\033[93m'
-    fail = '\033[1m\033[91m'
-    reset = '\033[0m'
-
-
+# Roles
 class Role(object):
     run = False
     module_name = ""
@@ -182,18 +212,17 @@ class Role(object):
     def init(self):
         if self.module_name:
             try:
-                print("Importing: " + self.module_name)
+                whisper("Importing: " + self.module_name)
                 self.module = __import__(self.module_name)
             except SyntaxError:
-                print("Syntax error with " + self.module_name + ", skipping...")
+                whisper("Syntax error with " + self.module_name + ", skipping...", True)
                 self.run = False
                 return True
             except ImportError:
-                print("Could not find " + self.module_name + ", skipping...")
+                whisper("Could not find " + self.module_name + ", skipping...", True)
                 self.run = False
                 return True
             else:
-                #self.func_to_call = getattr(self.module, self.check_func)
                 return False
         else:
             return False
@@ -215,14 +244,14 @@ class Role(object):
     def reload_role(self):
         if self.module:
             try:
-                print("Reloading " + self.module_name)
+                whisper("Reloading " + self.module_name)
                 self.module = reload(self.module)
             except SyntaxError:
-                print("Syntax error with " + self.module_name + ", skipping...")
+                whisper("Syntax error with " + self.module_name + ", skipping...", True)
                 self.run = False
                 return True
             except ImportError:
-                print("Could not find " + self.module_name + ", skipping...")
+                whisper("Could not find " + self.module_name + ", skipping...", True)
                 self.run = False
                 return True
             else:
@@ -243,16 +272,25 @@ add_role('phabLookup', True, 'lookup', [msg, config['phabricator']['site'], conf
 add_role('keywords', True, 'check', [msg, trusted], 'keywords')
 
 # Do stuff
-print("Connecting socket...")
+display_clear()
+
+print("Welcome to Bot24!")
+
+whisper("Connecting socket...")
 ircsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # start stream
-print("Connecting to server...")
+
+whisper("Connecting to server...")
 ircsock.connect((server, 6667))  # connect to server
-print("Authenticating as " + mynick + "...")
+
+whisper("Authenticating as " + mynick + "...")
 ircsock.send("USER " + mynick + " " + mynick + " " + mynick + " :In alpha state. Talk to Negative24 with problems.\n")  # user auth
-print("Setting nick to " + mynick + "...")
+
+whisper("Setting nick to " + mynick + "...")
 ircsock.send("NICK " + mynick + "\n")  # nick auth
-print("Authenticating with NickServ...")
+
+whisper("Authenticating with NickServ...")
 send_msg('NickServ', "IDENTIFY " + password)
+
 join_chan()  # join channels
 
 for n in roles:
@@ -266,12 +304,18 @@ while True:
 
     if ircmsg.find(' PRIVMSG ') != -1:
         parse(ircmsg, msg)
-        print(msg)
 
         if check_trusted(msg):
             trusted = True
         else:
             trusted = False
+
+        if msg[4].find("bot24") != -1:
+            mention = True
+        else:
+            mention = False
+
+        say(msg, trusted, mention)
 
         if not msg[6] is False:
             check_actions(msg)
