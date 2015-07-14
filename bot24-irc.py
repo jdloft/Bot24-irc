@@ -29,20 +29,24 @@ def say(msg, trusted=False, mention=False):
         message += " "
 
     if mention:
-        message += "\033[92m          " + msg[4]
+        message += "\033[92m          " + msg[4] + "\033[0m"
     else:
-        message += "\033[0m          " + msg[4]
+        message += "\033[0m          " + msg[4] + "\033[0m"
 
     print(message)
 
 
-def whisper(message, yell=False):
+def whisper(message, yell=False, component=False):
     current_time = time.localtime()
     display_time = time.strftime("%H:%M:%S", current_time)
+    output = "\033[94m" + display_time + "\033[0m | "
+    if not component is False:
+        output += "\033[92m" + component + ": "
     if yell:
-        print("\033[94m" + display_time + "\033[0m | \033[91m" + message + "\033[0m")
+        output += "\033[91m" + message + "\033[0m"
     else:
-        print("\033[94m" + display_time + "\033[0m | \033[90m" + message + "\033[0m")
+        output += "\033[90m" + message + "\033[0m"
+    print(output)
 
 
 def respond(message, target):
@@ -85,7 +89,7 @@ def send_msg(target, s, norespond=False):
 
 def join_chan():
     for i in config['channels']:
-        whisper("Joining " + i)
+        whisper("Joining " + i, False, "Channels")
         ircsock.send("JOIN " + i + "\n")
 
 
@@ -145,6 +149,7 @@ def check_actions(msg):
         if check_trusted(msg):
             for n in roles:
                 if command.startswith(n.lower()):
+                    print("Command: <" + command + ">")
                     if command.endswith("start"):
                         send_msg(msg[3], "Starting " + n + "...")
                         roles[n].start()
@@ -220,14 +225,14 @@ class Role(object):
     def init(self):
         if self.module_name:
             try:
-                whisper("Importing: " + self.module_name)
+                whisper("Importing: " + self.module_name, False, "Roles")
                 self.module = __import__(self.module_name)
             except SyntaxError:
-                whisper("Syntax error with " + self.module_name + ", skipping...", True)
+                whisper("Syntax error with " + self.module_name + ", skipping...", True, "Roles")
                 self.run = False
                 return True
             except ImportError:
-                whisper("Could not find " + self.module_name + ", skipping...", True)
+                whisper("Could not find " + self.module_name + ", skipping...", True, "Roles")
                 self.run = False
                 return True
             else:
@@ -252,14 +257,14 @@ class Role(object):
     def reload_role(self):
         if self.module:
             try:
-                whisper("Reloading " + self.module_name)
+                whisper("Reloading " + self.module_name, False, "Roles")
                 self.module = reload(self.module)
             except SyntaxError:
-                whisper("Syntax error with " + self.module_name + ", skipping...", True)
+                whisper("Syntax error with " + self.module_name + ", skipping...", True, "Roles")
                 self.run = False
                 return True
             except ImportError:
-                whisper("Could not find " + self.module_name + ", skipping...", True)
+                whisper("Could not find " + self.module_name + ", skipping...", True, "Roles")
                 self.run = False
                 return True
             else:
@@ -276,27 +281,27 @@ def add_role(role_name, run, check_func, args, module):
     roles[role_name].args = args
 
 
-add_role('phab_lookup', False, 'lookup', [msg, config['phabricator']['site'], config['phabricator']['apitoken']], 'phablookup')
+add_role('phablookup', False, 'lookup', [msg, config['phabricator']['site'], config['phabricator']['apitoken']], 'phablookup')
 add_role('keywords', True, 'check', [msg, trusted], 'keywords')
 
 # Do stuff
 display_clear()
 
-print("Welcome to Bot24!")
+print("Welcome to Bot24!\n")
 
-whisper("Connecting socket...")
+whisper("Connecting socket...", False, "Connection")
 ircsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # start stream
 
-whisper("Connecting to server...")
+whisper("Connecting to server...", False, "Connection")
 ircsock.connect((server, 6667))  # connect to server
 
-whisper("Authenticating as " + mynick + "...")
+whisper("Authenticating as " + mynick + "...", False, "Server")
 ircsock.send("USER " + mynick + " " + mynick + " " + mynick + " :In alpha state. Talk to Negative24 with problems.\n")  # user auth
 
-whisper("Setting nick to " + mynick + "...")
+whisper("Setting nick to " + mynick + "...", False, "Server")
 ircsock.send("NICK " + mynick + "\n")  # nick auth
 
-whisper("Authenticating with NickServ...")
+whisper("Authenticating with NickServ...", False, "Server")
 send_msg('NickServ', "IDENTIFY " + password, True)
 
 join_chan()  # join channels
@@ -304,13 +309,22 @@ join_chan()  # join channels
 for n in roles:
     getattr(roles[n], 'init')()  # run init on roles
 
+whisper("Waiting for server...\n", False, "Server")
+
 while True:
     ircmsg = ircsock.recv(4096)  # receive
-    ircmsg = ircmsg.strip('\n\r')  # clean up
 
-    #print(ircmsg)
+    for p in ircmsg.splitlines():
+        try:
+            irccmd = " ".join(p.split(" ")[1:])
+        except IndexError:
+            irccmd = ""
+
+        if irccmd.startswith("JOIN"):
+                whisper("Joined " + irccmd.split(" ")[1], False, "Channels")
 
     if ircmsg.find(' PRIVMSG ') != -1:
+        ircmsg = ircmsg.strip('\n\r')
         parse(ircmsg, msg)
 
         if check_trusted(msg):
@@ -318,7 +332,7 @@ while True:
         else:
             trusted = False
 
-        if (msg[4].find("bot24") != -1) or (not msg[6] is False):
+        if (msg[4].find("bot24") != -1) or not (msg[6] is False):
             mention = True
         else:
             mention = False
@@ -337,7 +351,7 @@ while True:
             else:
                 response_lns = response.splitlines()
                 for ln in response_lns:
-                    if ln == '':
+                    if ln == "":
                         ln = " "
                     send_msg(msg[3], ln)
 
