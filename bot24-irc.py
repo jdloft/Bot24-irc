@@ -173,7 +173,7 @@ class Colors:
     reset = '\033[0m'
 
 
-class Role:
+class Role(object):
     run = False
     module_name = ""
     check_func = ""
@@ -193,7 +193,7 @@ class Role:
                 self.run = False
                 return True
             else:
-                self.func_to_call = getattr(self.module, self.check_func)
+                #self.func_to_call = getattr(self.module, self.check_func)
                 return False
         else:
             return False
@@ -207,7 +207,7 @@ class Role:
     def check(self):
         if self.run:
             if self.module_name:
-                return self.func_to_call(*self.args)
+                return getattr(self.module, self.check_func)(*self.args)
             else:
                 return self.check_func(*self.args)
         return ""
@@ -215,7 +215,8 @@ class Role:
     def reload_role(self):
         if self.module:
             try:
-                reload(self.module)
+                print("Reloading " + self.module_name)
+                self.module = reload(self.module)
             except SyntaxError:
                 print("Syntax error with " + self.module_name + ", skipping...")
                 self.run = False
