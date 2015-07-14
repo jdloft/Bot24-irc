@@ -268,7 +268,7 @@ def add_role(role_name, run, check_func, args, module):
     roles[role_name].args = args
 
 
-add_role('phabLookup', True, 'lookup', [msg, config['phabricator']['site'], config['phabricator']['apitoken']], 'phablookup')
+add_role('phab_lookup', False, 'lookup', [msg, config['phabricator']['site'], config['phabricator']['apitoken']], 'phablookup')
 add_role('keywords', True, 'check', [msg, trusted], 'keywords')
 
 # Do stuff
