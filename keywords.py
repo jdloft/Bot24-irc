@@ -4,17 +4,16 @@ def check(msg, trusted):
         if msg[6] == "help":
             if trusted:
                 response = """Bot24 - Help
+Commands:
+help - this help text
 
-                    Commands:
-                        help - this help text
-
-                    Trusted user commands:
-                        stop - shutdown bot
-                        restart - restart bot"""
+Trusted user commands:
+stop - shutdown bot
+restart - restart bot"""
             else:
                 response = """Bot24 - Help
-                    Commands:
-                        help - this help text"""
+Commands:
+help - this help text"""
         elif (msg[6] == "hi" or msg[6] == "hello"):
             response = "Hello!"
     else:

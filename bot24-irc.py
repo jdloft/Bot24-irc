@@ -1,4 +1,5 @@
 # Libraries
+import argparse
 import os
 import sys
 import socket
@@ -7,31 +8,52 @@ import time
 import yaml
 
 msg = []
+global trusted
 trusted = False
 roles = {}
 
 
+# Argument parser
+parser = argparse.ArgumentParser(description="A very dangerous bot.", epilog="Use at your own risk!")
+parser.add_argument('-d', '--debug', dest='debug', action='store_const', const=True, default=False, help="see what went wrong")
+parser.add_argument('-p', '--plain', dest='plain', action='store_const', const=True, default=False, help="be boring")
+args = parser.parse_args()
+debug = args.debug
+plain = args.plain
+
+
 # Display
 def display_clear():
-    sys.stdout.write('\033[2J')
-    sys.stdout.write('\033[H')
-    sys.stdout.flush()
+    if not plain:
+        sys.stdout.write('\033[2J')
+        sys.stdout.write('\033[H')
+        sys.stdout.flush()
 
 
 def say(msg, trusted=False, mention=False):
     current_time = time.localtime()
     display_time = time.strftime("%H:%M:%S", current_time)
-    #column = "{0:10}{1:10}{2:10}{3:5}{4:20}"
-    message = "\033[94m" + display_time + "\033[0m | \033[91m" + msg[3] + "\033[0m | \033[95m" + msg[0]
-    if trusted:
-        message += "\033[93m*"
+    if plain:
+        message = display_time + " | " + msg[3] + " | " + msg[0]
+        if trusted:
+            message += "*"
+        else:
+            message += " "
+        if mention:
+            message += "           !<" + msg[4] + ">!"
+        else:
+            message += "             " + msg[4]
     else:
-        message += " "
+        message = "\033[94m" + display_time + "\033[0m | \033[91m" + msg[3] + "\033[0m | \033[95m" + msg[0]
+        if trusted:
+            message += "\033[93m*"
+        else:
+            message += " "
 
-    if mention:
-        message += "\033[92m          " + msg[4] + "\033[0m"
-    else:
-        message += "\033[0m          " + msg[4] + "\033[0m"
+        if mention:
+            message += "\033[92m          " + msg[4] + "\033[0m"
+        else:
+            message += "\033[0m          " + msg[4] + "\033[0m"
 
     print(message)
 
@@ -39,20 +61,34 @@ def say(msg, trusted=False, mention=False):
 def whisper(message, yell=False, component=False):
     current_time = time.localtime()
     display_time = time.strftime("%H:%M:%S", current_time)
-    output = "\033[94m" + display_time + "\033[0m | "
-    if not component is False:
-        output += "\033[92m" + component + ": "
-    if yell:
-        output += "\033[91m" + message + "\033[0m"
+    if plain:
+        output = display_time + " | "
+        if not component is False:
+            output += component + ": "
+        if yell:
+            output += "YELL!: " + message
+        else:
+            output += "       " + message
+
     else:
-        output += "\033[90m" + message + "\033[0m"
+        output = "\033[94m" + display_time + "\033[0m | "
+        if not component is False:
+            output += "\033[92m" + component + ": "
+        if yell:
+            output += "\033[91m" + message + "\033[0m"
+        else:
+            output += "\033[90m" + message + "\033[0m"
+
     print(output)
 
 
 def respond(message, target):
     current_time = time.localtime()
     display_time = time.strftime("%H:%M:%S", current_time)
-    print("\033[94m" + display_time + "\033[0m | " + message + "\033[91m -> " + target + "\033[0m")
+    if plain:
+        print(display_time + " | " + message + " -> " + target)
+    else:
+        print("\033[94m" + display_time + "\033[0m | " + message + "\033[91m -> " + target + "\033[0m")
 
 
 # Setup DB
@@ -71,6 +107,7 @@ with open(os.path.abspath("config.yaml")) as conf:
 mynick = config['credentials']['nick']
 password = config['credentials']['password']
 server = config['server']
+channels = config['channels']
 
 
 # IRC base actions
@@ -90,10 +127,15 @@ def send_msg(msg, s, norespond=False):
     ircsock.send("PRIVMSG " + target + " :" + s + "\n")
 
 
-def join_chan():
-    for i in config['channels']:
+def join_chans():
+    for i in channels:
         whisper("Joining " + i, False, "Channels")
         ircsock.send("JOIN " + i + "\n")
+
+
+def join(chan):
+    whisper("Joining " + chan, False, "Channels")
+    ircsock.send("JOIN " + chan + "\n")
 
 
 # parse PRIVMSGs
@@ -133,19 +175,40 @@ def add_info(table, column, values):
 
 
 # Actions
-def check_actions(msg):
+def check_actions(msg, trusted):
     # Stop
     if msg[6].startswith("stop"):
-        if check_trusted(msg):
+        if trusted:
             stop()
         else:
             send_msg(msg, "Sorry, you can't tell me what to do.")
     # Restart
     elif msg[6].startswith("restart"):
-        if check_trusted(msg):
+        if trusted:
             restart()
         else:
             send_msg(msg, "I don't think so.")
+    # Channel management
+    elif msg[6].startswith("join"):
+        if trusted:
+            try:
+                chan_join = msg[6].split(" ")[1].lower()
+            except IndexError:
+                send_msg(msg, "Rejoining channels...")
+                join_chans()
+                return True
+            for t in config['channels']:
+                t = t.lower()
+                if chan_join == t:
+                    send_msg(msg, "Joining " + t + "...")
+                    join(t)
+                    return True
+            channels.append(chan_join)
+            send_msg(msg, "Joining " + chan_join + "...")
+            join(chan_join)
+        else:
+            send_msg(msg, "Nope.")
+
     # Role control
     elif msg[6].startswith("role "):
         command = " ".join(msg[6].split(" ")[1:])
@@ -310,9 +373,9 @@ whisper("Setting nick to " + mynick + "...", False, "Server")
 ircsock.send("NICK " + mynick + "\n")  # nick auth
 
 whisper("Authenticating with NickServ...", False, "Server")
-ircsock.send("NickServ :IDENTIFY " + password)
+ircsock.send("PRIVMSG NickServ :IDENTIFY " + password + "\r\n")
 
-join_chan()  # join channels
+join_chans()  # join channels
 
 for n in roles:
     getattr(roles[n], 'init')()  # run init on roles
@@ -348,7 +411,7 @@ while True:
         say(msg, trusted, mention)
 
         if not msg[6] is False:
-            check_actions(msg)
+            check_actions(msg, trusted)
 
         # roles
         for n in roles:
@@ -362,6 +425,11 @@ while True:
                     if ln == "":
                         ln = " "
                     send_msg(msg, ln)
+    else:
+        if debug:
+            ircmsg = ircmsg.strip('\r')
+            for ln in ircmsg.splitlines():
+                print("DEBUG: " + ln)
 
     if ircmsg.find("PING :") != -1:
         pong()
