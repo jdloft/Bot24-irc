@@ -7,4 +7,4 @@ install:
   - "pip install flake8"
 # tests
 script:
-  - "flake8 . --ignore='E501' --exclude arcanist/ --exclude libphutil/"
+  - "flake8 . --ignore='E501' --exclude 'arcanist/' 'libphutil/'"
