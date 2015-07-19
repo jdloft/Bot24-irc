@@ -124,6 +124,7 @@ with open(os.path.abspath("config.yaml")) as conf:
     config = yaml.load(conf)
 
 mynick = config['credentials']['nick']
+authnick = config['credentials']['authnick']
 password = config['credentials']['password']
 server = config['server']
 channels = config['channels']
@@ -392,7 +393,7 @@ whisper("Setting nick to " + mynick + "...", False, "Server")
 ircsock.send("NICK " + mynick + "\n")  # nick auth
 
 whisper("Authenticating with NickServ...", False, "Server")
-ircsock.send("PRIVMSG NickServ :IDENTIFY " + password + "\r\n")
+ircsock.send("PRIVMSG NickServ :IDENTIFY " + authnick + " " + password + "\r\n")
 
 join_chans()  # join channels
 

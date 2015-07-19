@@ -2,6 +2,7 @@
 # Fill in nick, password, server, and site details with your details
 credentials:
     nick: 
+    authnick:
     password: 
 server: irc.freenode.net
 channels:
