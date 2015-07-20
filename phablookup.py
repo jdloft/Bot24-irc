@@ -48,7 +48,7 @@ def lookup(msg, site, apitoken):
                 text.append(n + ": " + title + " - " + site + "/" + n)
             else:
                 text.append(n + ": " + title)
-        #elif matches[n][:1] == "D": # Differential support
+        #  elif matches[n][:1] == "D": # Differential support
     return text
 
 

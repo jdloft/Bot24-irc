@@ -17,6 +17,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Bot24-irc.  If not, see <http://www.gnu.org/licenses/>.
 
+
 def check(msg, trusted):
     response = ""
     if not msg[6] is False:

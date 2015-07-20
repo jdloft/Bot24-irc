@@ -82,7 +82,7 @@ def whisper(message, yell=False, component=False):
     display_time = time.strftime("%H:%M:%S", current_time)
     if plain:
         output = display_time + " | "
-        if not component is False:
+        if not component:
             output += component + ": "
         if yell:
             output += "YELL!: " + message
@@ -91,7 +91,7 @@ def whisper(message, yell=False, component=False):
 
     else:
         output = "\033[94m" + display_time + "\033[0m | "
-        if not component is False:
+        if not component:
             output += "\033[92m" + component + ": "
         if yell:
             output += "\033[91m" + message + "\033[0m"
