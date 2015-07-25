@@ -4,7 +4,7 @@
 [![GitHub release](https://img.shields.io/github/release/jdloft/bot24-irc.svg)](https://github.com/jdloft/bot24-irc/releases)
 
 Bot24-irc is the IRC component of the Bot24 framework.
-At the moment it doesn't do much at the moment. It relies
+It doesn't do much at the moment. It relies
 on roles, just pieces of functionality built into modules
 and then translated through a class or just built into the
 class itself.
@@ -12,7 +12,7 @@ class itself.
 
 ## Installation
 1. Run `sqlinit.py` to generate the database file
-2. Duplicate sample-config.yaml and fill in with your details
+2. Copy `sample-config.yaml` to `config.yaml` and fill in with your details
 
 ## IRC commands
 
