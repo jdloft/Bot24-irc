@@ -36,7 +36,7 @@ Commands:
 help - this help text"""
         elif (msg[6] == "hi" or msg[6] == "hello"):
             response = "Hello!"
-    else:
-        if msg[4].find("bot24") != -1:
-            response = "Hello!"
+    # else:
+        # if msg[4].find("bot24") != -1:
+            # response = "Hello!"
     return response
