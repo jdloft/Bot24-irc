@@ -55,14 +55,17 @@ def lookup(msg, site, apitoken):
 def get_title(request, method, refnum, refprop, site, token):
     arc = os.path.abspath("arcanist/bin/arc")
     arc_cmd = [arc, "call-conduit", "--conduit-uri=" + site, "--conduit-token=" + token, method]
-    print("Looking up " + refnum)
     phabreq = subprocess.Popen(arc_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    phabjson = json.loads(phabreq.communicate(request)[0])
-    if not phabjson['error'] is None:
-        if phabjson['error'] == "ERR_BAD_TASK":
-            response = "Doesn't exist"
-        else:
-            response = "Error with lookup"
+    try:
+        phabjson = json.loads(phabreq.communicate(request)[0])
+    except ValueError:
+        return ""
     else:
-        response = phabjson['response'][refprop]
-    return response
+        if not phabjson['error'] is None:
+            if phabjson['error'] == "ERR_BAD_TASK":
+                response = "Doesn't exist"
+            else:
+                response = "Error with lookup"
+        else:
+            response = phabjson['response'][refprop]
+        return response
