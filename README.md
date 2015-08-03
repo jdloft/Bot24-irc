@@ -28,7 +28,7 @@ with `bot24: command` and `bot24 command`.
 
 ### Role control
 * `role` precedes all role control commmands
-  * `role ROLE status` checkes the state of `ROLE`
+  * `role ROLE status` checks the state of `ROLE`
   * `role ROLE start` starts `ROLE`
   * `role ROLE stop` stops `ROLE`
   * `role ROLE reload` reloads `ROLE` if it is a module
@@ -40,7 +40,7 @@ with `bot24: command` and `bot24 command`.
 
 ## Roles
 The roles `phablookup` and `keywords` come installed (but
-`phablookup` disabled). `phablookup` lookes up any
+`phablookup` disabled). `phablookup` looks up any
 Phabricator Maniphest Task number such as T##### or
-http://url.something.com/T####. `keywords` lookes up keywords
+http://url.something.com/T####. `keywords` looks up keywords
 that are defined in its module.

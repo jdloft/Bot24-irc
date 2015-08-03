@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 
 # Bot24-irc - An IRC bot with misc tools for Wikimedia channels
 # Copyright (C) 2015 Jamison Lofthouse
