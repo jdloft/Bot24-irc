@@ -35,8 +35,8 @@ restart - restart bot"""
 Commands:
 help - this help text"""
         elif (msg[6] == "hi" or msg[6] == "hello"):
-            response = "Hello!"
-    # else:
-        # if msg[4].find("bot24") != -1:
-            # response = "Hello!"
+            response = "hello!"
+    else:
+        if msg[4].find("bot24") != -1:
+            response = "o/"
     return response
