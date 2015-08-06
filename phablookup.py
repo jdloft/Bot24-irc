@@ -31,16 +31,19 @@ def lookup(msg, site, apitoken):
     matches = re.findall(r"https?://phabricator.wikimedia.org/[T][1-9][0-9]{0,6}(?=\W|\Z)", msg[4])
     if matches:
         showurl = False
+        for s, value in enumerate(matches):
+            matches[s] = matches[s].rsplit("/", 1)[-1]
     else:
         showurl = True
         matches = re.findall(r"[T][1-9][0-9]{0,6}(?=\W|\Z)", msg[4])
     for n in matches:
-        if n[:1] == "T":
+        print("Looking up " + n)
+        if n.startswith("T"):
+            print("Maniphest task")
             request = """{
                           "task_id": """ + n[1:] + """
                       }"""
             method = "maniphest.info"
-            print("Looking up " + n)
             title = get_title(request, method, n[1:], 'title', site, apitoken)
             if (title == "Doesn't exist" or title == "Error with lookup"):
                 showurl = False
